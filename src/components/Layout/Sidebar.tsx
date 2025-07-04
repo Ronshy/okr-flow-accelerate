@@ -140,16 +140,6 @@ const Sidebar = () => {
           </div>
         ))}
       </nav>
-
-      <div className="absolute bottom-6 left-3 right-3">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-900 mb-1">AI Assistant</h3>
-          <p className="text-xs text-blue-700 mb-2">Get OKR insights and suggestions</p>
-          <button className="w-full bg-blue-600 text-white text-xs py-2 px-3 rounded-md hover:bg-blue-700 transition-colors">
-            Ask AI
-          </button>
-        </div>
-      </div>
     </div>
   );
 };
