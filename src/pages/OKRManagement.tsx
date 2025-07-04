@@ -2,10 +2,12 @@
 import React, { useState } from 'react';
 import { Target, Plus, Filter, Grid, List, Search } from 'lucide-react';
 import OKRCard from '@/components/OKR/OKRCard';
+import CreateOKRModal from '@/components/OKR/CreateOKRModal';
 
 const OKRManagement = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterLevel, setFilterLevel] = useState<'all' | 'company' | 'team' | 'individual'>('all');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const okrData = [
     {
@@ -112,7 +114,10 @@ const OKRManagement = () => {
           <h1 className="text-3xl font-bold text-gray-900">OKR Management</h1>
           <p className="text-gray-600 mt-1">Track and manage objectives and key results</p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+        <button 
+          onClick={() => setIsCreateModalOpen(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+        >
           <Plus className="w-4 h-4" />
           <span>Create OKR</span>
         </button>
@@ -173,11 +178,20 @@ const OKRManagement = () => {
           <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No OKRs found</h3>
           <p className="text-gray-600 mb-4">Get started by creating your first OKR</p>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+          <button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
             Create Your First OKR
           </button>
         </div>
       )}
+
+      <CreateOKRModal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+        level="company"
+      />
     </div>
   );
 };
