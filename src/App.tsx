@@ -17,32 +17,35 @@ import CalendarPage from "./pages/Calendar";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import { DepartmentProvider } from "./components/OKR/DepartmentContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/okr" element={<OKRManagement />} />
-            <Route path="/okr/my" element={<MyOKR />} />
-            <Route path="/okr/team" element={<TeamOKR />} />
-            <Route path="/okr/company" element={<CompanyOKR />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/performance/*" element={<Performance />} />
-            <Route path="/engagement" element={<Engagement />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
-      </BrowserRouter>
+      <DepartmentProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/okr" element={<OKRManagement />} />
+              <Route path="/okr/my" element={<MyOKR />} />
+              <Route path="/okr/team" element={<TeamOKR />} />
+              <Route path="/okr/company" element={<CompanyOKR />} />
+              <Route path="/tasks" element={<Tasks />} />
+              <Route path="/performance/*" element={<Performance />} />
+              <Route path="/engagement" element={<Engagement />} />
+              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Layout>
+        </BrowserRouter>
+      </DepartmentProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
