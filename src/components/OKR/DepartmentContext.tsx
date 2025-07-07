@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface Department {
   id: string;
@@ -33,6 +33,17 @@ interface DepartmentProviderProps {
 
 export const DepartmentProvider = ({ children }: DepartmentProviderProps) => {
   const [currentDepartment, setCurrentDepartment] = useState('engineering');
+
+  // Sync with user's department on login
+  useEffect(() => {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      if (user.department) {
+        setCurrentDepartment(user.department);
+      }
+    }
+  }, []);
 
   const departments: Department[] = [
     {
