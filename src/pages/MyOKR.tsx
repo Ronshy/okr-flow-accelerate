@@ -5,53 +5,20 @@ import OKRCard from '@/components/OKR/OKRCard';
 import CreateOKRModal from '@/components/OKR/CreateOKRModal';
 import OKRAlignment from '@/components/OKR/OKRAlignment';
 import { useDepartment } from '@/components/OKR/DepartmentContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MyOKR = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'on-track' | 'at-risk' | 'off-track'>('all');
   const [showAlignment, setShowAlignment] = useState(false);
   
+  const { user, getUserOKRs } = useAuth();
   const { currentDepartment, getTeamOKRsByDepartment, departments } = useDepartment();
   const currentDeptName = departments.find(d => d.id === currentDepartment)?.name || 'Engineering';
   const teamOKRs = getTeamOKRsByDepartment(currentDepartment);
 
-  const myOKRs = [
-    {
-      id: '1',
-      objective: 'Improve personal productivity and deliver high-quality code',
-      keyResults: [
-        {
-          id: 'kr1',
-          title: 'Complete 15 feature tickets per sprint',
-          progress: 80,
-          target: '15',
-          current: '12',
-          status: 'on-track' as const
-        },
-        {
-          id: 'kr2',
-          title: 'Maintain code review response time under 2 hours',
-          progress: 90,
-          target: '< 2 hours',
-          current: '1.5 hours',
-          status: 'on-track' as const
-        },
-        {
-          id: 'kr3',
-          title: 'Achieve 95% unit test coverage',
-          progress: 65,
-          target: '95%',
-          current: '78%',
-          status: 'at-risk' as const
-        }
-      ],
-      owner: 'Me',
-      team: currentDeptName,
-      deadline: '2024-03-31',
-      progress: 78,
-      type: 'committed' as const
-    }
-  ];
+  // Get OKRs specific to the logged-in user
+  const myOKRs = getUserOKRs();
 
   const filteredOKRs = myOKRs.filter(okr => {
     if (filterStatus === 'all') return true;
@@ -69,6 +36,9 @@ const MyOKR = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">My OKRs</h1>
           <p className="text-gray-600 mt-1">Track your personal objectives aligned with {currentDeptName} team goals</p>
+          {user && (
+            <p className="text-sm text-gray-500 mt-1">Logged in as: {user.name} ({user.email})</p>
+          )}
         </div>
         <div className="flex items-center space-x-3">
           <button 
