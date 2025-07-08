@@ -1,34 +1,93 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Target, Plus, Filter, Search, Calendar, User, Users } from 'lucide-react';
 import OKRCard from '@/components/OKR/OKRCard';
 import CreateOKRModal from '@/components/OKR/CreateOKRModal';
 import OKRAlignment from '@/components/OKR/OKRAlignment';
 import { useDepartment } from '@/components/OKR/DepartmentContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const MyOKR = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'on-track' | 'at-risk' | 'off-track'>('all');
   const [showAlignment, setShowAlignment] = useState(false);
+  const [myOKRs, setMyOKRs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const { user, getUserOKRs } = useAuth();
+  const { user } = useAuth();
   const { currentDepartment, getTeamOKRsByDepartment, departments } = useDepartment();
   const currentDeptName = departments.find(d => d.id === currentDepartment)?.name || 'Engineering';
   const teamOKRs = getTeamOKRsByDepartment(currentDepartment);
 
-  // Get OKRs specific to the logged-in user
-  const myOKRs = getUserOKRs();
+  useEffect(() => {
+    if (user) {
+      fetchMyOKRs();
+    }
+  }, [user]);
+
+  const fetchMyOKRs = async () => {
+    if (!user) return;
+
+    try {
+      setIsLoading(true);
+      const { data: okrs, error } = await supabase
+        .from('okrs')
+        .select(`
+          *,
+          key_results (*)
+        `)
+        .eq('owner_id', user.id)
+        .eq('level', 'individual');
+
+      if (error) {
+        console.error('Error fetching OKRs:', error);
+        return;
+      }
+
+      if (okrs) {
+        const formattedOKRs = okrs.map(okr => ({
+          id: okr.id,
+          objective: okr.objective,
+          keyResults: okr.key_results.map((kr: any) => ({
+            id: kr.id,
+            title: kr.title,
+            progress: kr.progress,
+            target: kr.target,
+            current: kr.current,
+            status: kr.status
+          })),
+          owner: user.name,
+          team: currentDeptName,
+          deadline: okr.deadline,
+          progress: okr.progress,
+          type: okr.type
+        }));
+        setMyOKRs(formattedOKRs);
+      }
+    } catch (error) {
+      console.error('Error in fetchMyOKRs:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredOKRs = myOKRs.filter(okr => {
     if (filterStatus === 'all') return true;
-    return okr.keyResults.some(kr => kr.status === filterStatus);
+    return okr.keyResults.some((kr: any) => kr.status === filterStatus);
   });
 
   const handleAlignment = (personalOKRId: string, teamOKRId: string) => {
     console.log('Aligning personal OKR', personalOKRId, 'with team OKR', teamOKRId);
     // Here you would implement the alignment logic
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -122,7 +181,10 @@ const MyOKR = () => {
 
       <CreateOKRModal 
         isOpen={isCreateModalOpen} 
-        onClose={() => setIsCreateModalOpen(false)} 
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          fetchMyOKRs(); // Refresh OKRs after creating new one
+        }}
         level="individual"
       />
     </div>

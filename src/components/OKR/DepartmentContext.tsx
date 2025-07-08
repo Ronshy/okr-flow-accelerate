@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Department {
   id: string;
@@ -33,6 +34,36 @@ interface DepartmentProviderProps {
 
 export const DepartmentProvider = ({ children }: DepartmentProviderProps) => {
   const [currentDepartment, setCurrentDepartment] = useState('engineering');
+  const [departments, setDepartments] = useState<Department[]>([]);
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  const fetchDepartments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching departments:', error);
+        return;
+      }
+
+      if (data) {
+        const formattedDepartments = data.map(dept => ({
+          id: dept.name.toLowerCase(),
+          name: dept.name,
+          head: dept.head,
+          members: [] // This could be populated by counting profiles
+        }));
+        setDepartments(formattedDepartments);
+      }
+    } catch (error) {
+      console.error('Error in fetchDepartments:', error);
+    }
+  };
 
   // Sync with user's department on login
   useEffect(() => {
@@ -40,69 +71,19 @@ export const DepartmentProvider = ({ children }: DepartmentProviderProps) => {
     if (savedUser) {
       const user = JSON.parse(savedUser);
       if (user.department) {
-        setCurrentDepartment(user.department);
+        setCurrentDepartment(user.department.toLowerCase());
       }
     }
   }, []);
 
-  const departments: Department[] = [
-    {
-      id: 'engineering',
-      name: 'Engineering',
-      head: 'Alex Rodriguez',
-      members: ['john.doe', 'jane.smith', 'alex.rodriguez']
-    },
-    {
-      id: 'product',
-      name: 'Product',
-      head: 'Emma Watson',
-      members: ['emma.watson', 'mike.johnson']
-    },
-    {
-      id: 'marketing',
-      name: 'Marketing',
-      head: 'Sarah Chen',
-      members: ['sarah.chen', 'david.kim']
-    },
-    {
-      id: 'sales',
-      name: 'Sales',
-      head: 'Robert Taylor',
-      members: ['robert.taylor', 'lisa.anderson']
-    }
-  ];
-
   const getUserDepartment = (userId: string): string => {
-    const dept = departments.find(d => d.members.includes(userId));
-    return dept?.id || 'engineering';
+    // This would need to be implemented with actual user data
+    return 'engineering';
   };
 
   const getTeamOKRsByDepartment = (dept: string) => {
-    // Sample team OKRs filtered by department
-    const allTeamOKRs = [
-      {
-        id: '1',
-        department: 'engineering',
-        objective: 'Accelerate product development velocity and quality',
-        keyResults: [
-          {
-            id: 'kr1',
-            title: 'Reduce average feature delivery time by 40%',
-            progress: 75,
-            target: '40%',
-            current: '30%',
-            status: 'on-track' as const
-          }
-        ],
-        owner: 'Engineering Team',
-        team: 'Engineering',
-        deadline: '2024-03-31',
-        progress: 84,
-        type: 'committed' as const
-      }
-    ];
-
-    return allTeamOKRs.filter(okr => okr.department === dept);
+    // This will be implemented later to fetch real team OKRs
+    return [];
   };
 
   const alignPersonalOKRWithTeam = (personalOKR: any, teamOKR: any): boolean => {

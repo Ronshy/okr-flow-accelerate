@@ -28,7 +28,7 @@ const Login = () => {
     try {
       const success = await login(email, password);
       if (!success) {
-        setError('Email atau password salah. Gunakan password: password123');
+        setError('Email atau password salah. Silakan coba lagi.');
       }
     } catch (err) {
       setError('Terjadi kesalahan saat login');
@@ -36,14 +36,6 @@ const Login = () => {
       setIsSubmitting(false);
     }
   };
-
-  const demoAccounts = [
-    { name: 'Alex Rodriguez (Engineering)', email: 'alex.rodriguez@company.com' },
-    { name: 'Emma Watson (Product)', email: 'emma.watson@company.com' },
-    { name: 'Sarah Chen (Marketing)', email: 'sarah.chen@company.com' },
-    { name: 'Robert Taylor (Sales)', email: 'robert.taylor@company.com' },
-    { name: 'John Doe (Engineering)', email: 'john.doe@company.com' }
-  ];
 
   if (isLoading) {
     return (
@@ -122,26 +114,11 @@ const Login = () => {
             </Button>
           </form>
 
-          {/* Demo Accounts */}
+          {/* Note */}
           <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Demo Accounts:</h3>
-            <div className="space-y-2 text-xs text-gray-600">
-              {demoAccounts.map((account, index) => (
-                <div key={index} className="flex justify-between">
-                  <span>{account.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => setEmail(account.email)}
-                    className="text-blue-600 hover:text-blue-700"
-                  >
-                    Use
-                  </button>
-                </div>
-              ))}
-              <div className="mt-2 text-center text-gray-500">
-                Password: <code className="bg-gray-200 px-1 rounded">password123</code>
-              </div>
-            </div>
+            <p className="text-sm text-gray-600 text-center">
+              Belum punya akun? Hubungi administrator untuk membuat akun baru.
+            </p>
           </div>
         </div>
       </div>
