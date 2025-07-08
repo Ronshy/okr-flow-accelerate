@@ -1,37 +1,79 @@
 
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Building2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Building2, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Redirect if already authenticated
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
 
     try {
-      const success = await login(email, password);
-      if (!success) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
         setError('Email atau password salah. Silakan coba lagi.');
       }
     } catch (err) {
       setError('Terjadi kesalahan saat login');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMessage('');
+    setIsSubmitting(true);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name
+          },
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        if (error.message.includes('already registered')) {
+          setError('Email sudah terdaftar. Silakan gunakan email lain atau login.');
+        } else {
+          setError('Gagal membuat akun. Silakan coba lagi.');
+        }
+      } else if (data.user && !data.session) {
+        setSuccessMessage('Akun berhasil dibuat! Silakan cek email untuk verifikasi.');
+      }
+    } catch (err) {
+      setError('Terjadi kesalahan saat membuat akun');
     } finally {
       setIsSubmitting(false);
     }
@@ -55,11 +97,65 @@ const Login = () => {
               <Building2 className="w-6 h-6 text-white" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900">OKR Management</h2>
-            <p className="text-gray-600 mt-2">Masuk ke akun Anda</p>
+            <p className="text-gray-600 mt-2">
+              {isSignUp ? 'Buat akun baru' : 'Masuk ke akun Anda'}
+            </p>
           </div>
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Form Toggle */}
+          <div className="flex mb-6">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(false);
+                setError('');
+                setSuccessMessage('');
+              }}
+              className={`flex-1 py-2 px-4 text-sm font-medium rounded-l-lg transition-colors ${
+                !isSignUp
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Masuk
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(true);
+                setError('');
+                setSuccessMessage('');
+              }}
+              className={`flex-1 py-2 px-4 text-sm font-medium rounded-r-lg transition-colors ${
+                isSignUp
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Daftar
+            </button>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={isSignUp ? handleSignUp : handleLogin} className="space-y-6">
+            {isSignUp && (
+              <div>
+                <Label htmlFor="name">Nama Lengkap</Label>
+                <div className="relative mt-1">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="pl-10"
+                    placeholder="Masukkan nama lengkap"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <Label htmlFor="email">Email</Label>
               <div className="relative mt-1">
@@ -88,6 +184,7 @@ const Login = () => {
                   className="pl-10 pr-10"
                   placeholder="Masukkan password"
                   required
+                  minLength={6}
                 />
                 <button
                   type="button"
@@ -97,6 +194,11 @@ const Login = () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {isSignUp && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Password minimal 6 karakter
+                </p>
+              )}
             </div>
 
             {error && (
@@ -105,19 +207,31 @@ const Login = () => {
               </div>
             )}
 
+            {successMessage && (
+              <div className="text-green-600 text-sm bg-green-50 p-3 rounded-lg">
+                {successMessage}
+              </div>
+            )}
+
             <Button
               type="submit"
               disabled={isSubmitting}
               className="w-full"
             >
-              {isSubmitting ? 'Masuk...' : 'Masuk'}
+              {isSubmitting 
+                ? (isSignUp ? 'Membuat akun...' : 'Masuk...') 
+                : (isSignUp ? 'Buat Akun' : 'Masuk')
+              }
             </Button>
           </form>
 
-          {/* Note */}
+          {/* Footer Note */}
           <div className="mt-8 p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600 text-center">
-              Belum punya akun? Hubungi administrator untuk membuat akun baru.
+              {isSignUp 
+                ? 'Sudah punya akun? Klik tombol "Masuk" di atas.'
+                : 'Belum punya akun? Klik tombol "Daftar" di atas untuk membuat akun baru.'
+              }
             </p>
           </div>
         </div>
