@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Building2, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +18,18 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [departments, setDepartments] = useState([]);
+  const [departmentId, setDepartmentId] = useState('');
+
+  useEffect(() => {
+    if (isSignUp) {
+      const fetchDepartments = async () => {
+        const { data, error } = await supabase.from('departments').select('id, name');
+        if (!error && data) setDepartments(data);
+      };
+      fetchDepartments();
+    }
+  }, [isSignUp]);
 
   // Redirect if already authenticated
   if (isAuthenticated) {
@@ -51,13 +63,26 @@ const Login = () => {
     setSuccessMessage('');
     setIsSubmitting(true);
 
+    // Validasi ekstra agar nama dan departemen tidak boleh kosong
+    if (!name.trim()) {
+      setError('Nama lengkap wajib diisi.');
+      setIsSubmitting(false);
+      return;
+    }
+    if (!departmentId) {
+      setError('Departemen wajib dipilih.');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            name: name
+            name: name,
+            department_id: departmentId
           },
           emailRedirectTo: `${window.location.origin}/`
         }
@@ -67,7 +92,7 @@ const Login = () => {
         if (error.message.includes('already registered')) {
           setError('Email sudah terdaftar. Silakan gunakan email lain atau login.');
         } else {
-          setError('Gagal membuat akun. Silakan coba lagi.');
+          setError(`Gagal membuat akun: ${error.message}`);
         }
       } else if (data.user && !data.session) {
         setSuccessMessage('Akun berhasil dibuat! Silakan cek email untuk verifikasi.');
@@ -139,21 +164,38 @@ const Login = () => {
           {/* Form */}
           <form onSubmit={isSignUp ? handleSignUp : handleLogin} className="space-y-6">
             {isSignUp && (
-              <div>
-                <Label htmlFor="name">Nama Lengkap</Label>
-                <div className="relative mt-1">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="pl-10"
-                    placeholder="Masukkan nama lengkap"
-                    required
-                  />
+              <>
+                <div>
+                  <Label htmlFor="name">Nama Lengkap</Label>
+                  <div className="relative mt-1">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="pl-10"
+                      placeholder="Masukkan nama lengkap"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
+                <div>
+                  <Label htmlFor="department">Departemen</Label>
+                  <select
+                    id="department"
+                    value={departmentId}
+                    onChange={e => setDepartmentId(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1"
+                    required
+                  >
+                    <option value="">Pilih departemen</option>
+                    {departments.map((dept) => (
+                      <option key={dept.id} value={dept.id}>{dept.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
 
             <div>

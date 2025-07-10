@@ -107,16 +107,9 @@ BEGIN
   INSERT INTO public.profiles (id, name, email, department_id)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'name', ''), NEW.email),
     NEW.email,
-    CASE 
-      WHEN NEW.email LIKE '%alex.rodriguez%' THEN '11111111-1111-1111-1111-111111111111'
-      WHEN NEW.email LIKE '%emma.watson%' THEN '22222222-2222-2222-2222-222222222222'
-      WHEN NEW.email LIKE '%sarah.chen%' THEN '33333333-3333-3333-3333-333333333333'
-      WHEN NEW.email LIKE '%robert.taylor%' THEN '44444444-4444-4444-4444-444444444444'
-      WHEN NEW.email LIKE '%john.doe%' THEN '11111111-1111-1111-1111-111111111111'
-      ELSE '11111111-1111-1111-1111-111111111111'
-    END
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'department_id', ''), NULL)::uuid
   );
   RETURN NEW;
 END;
