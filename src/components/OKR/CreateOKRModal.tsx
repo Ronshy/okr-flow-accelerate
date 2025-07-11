@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Plus, X, Target } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreateOKRModalProps {
   isOpen: boolean;
@@ -18,6 +20,9 @@ const CreateOKRModal = ({ isOpen, onClose, level }: CreateOKRModalProps) => {
   const [okrType, setOkrType] = useState<'committed' | 'aspirational'>('committed');
   const [deadline, setDeadline] = useState('');
   const [owner, setOwner] = useState('');
+  const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const addKeyResult = () => {
     setKeyResults([...keyResults, { title: '', target: '', type: 'metric' }]);
@@ -36,11 +41,59 @@ const CreateOKRModal = ({ isOpen, onClose, level }: CreateOKRModalProps) => {
     setKeyResults(updated);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle OKR creation logic here
-    console.log('Creating OKR:', { objective, keyResults, okrType, deadline, owner, level });
-    onClose();
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      if (!user) {
+        setError('User not logged in');
+        setIsSubmitting(false);
+        return;
+      }
+      // Insert OKR
+      const okrPayload: any = {
+        objective,
+        level,
+        type: okrType,
+        deadline,
+        progress: 0,
+        owner_id: user.id,
+      };
+      // For team/company, you may want to set department_id or owner differently
+      const { data: okrData, error: okrError } = await supabase
+        .from('okrs')
+        .insert([okrPayload])
+        .select();
+      if (okrError || !okrData || !okrData[0]) {
+        setError(okrError?.message || 'Failed to create OKR');
+        setIsSubmitting(false);
+        return;
+      }
+      const okrId = okrData[0].id;
+      // Insert key results
+      const keyResultsPayload = keyResults.map(kr => ({
+        okr_id: okrId,
+        title: kr.title,
+        target: kr.target,
+        status: 'on-track',
+        progress: 0,
+        current: '0',
+      }));
+      const { error: krError } = await supabase
+        .from('key_results')
+        .insert(keyResultsPayload);
+      if (krError) {
+        setError(krError.message);
+        setIsSubmitting(false);
+        return;
+      }
+      setIsSubmitting(false);
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Unknown error');
+      setIsSubmitting(false);
+    }
   };
 
   const getLevelTitle = () => {
@@ -196,12 +249,15 @@ const CreateOKRModal = ({ isOpen, onClose, level }: CreateOKRModalProps) => {
             </div>
           </div>
 
+          {error && (
+            <div className="text-red-600 text-sm mb-2">{error}</div>
+          )}
           <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-              Create OKR
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+              {isSubmitting ? 'Creating...' : 'Create OKR'}
             </Button>
           </div>
         </form>
