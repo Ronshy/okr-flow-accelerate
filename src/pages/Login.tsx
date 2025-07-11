@@ -69,11 +69,14 @@ const Login = () => {
       setIsSubmitting(false);
       return;
     }
-    if (!departmentId) {
+    if (!departmentId.trim) {
       setError('Departemen wajib dipilih.');
       setIsSubmitting(false);
       return;
     }
+
+    // Debug: tampilkan value yang akan dikirim
+    console.log('Data yang akan dikirim ke Supabase:', { email, name, departmentId });
 
     try {
       const { data, error } = await supabase.auth.signUp({
