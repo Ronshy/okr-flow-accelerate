@@ -3,6 +3,8 @@ import React from 'react';
 import { Target, Users, CheckSquare, TrendingUp, Star, Calendar } from 'lucide-react';
 import MetricCard from '@/components/Dashboard/MetricCard';
 import ProgressChart from '@/components/Dashboard/ProgressChart';
+import OKRPieChart from '@/components/Dashboard/OKRPieChart';
+import OKRComparisonChart from '@/components/Dashboard/OKRComparisonChart';
 import OKRCard from '@/components/OKR/OKRCard';
 
 const Dashboard = () => {
@@ -131,6 +133,10 @@ const Dashboard = () => {
       </div>
 
       <ProgressChart />
+      
+      <OKRPieChart />
+      
+      <OKRComparisonChart />
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
