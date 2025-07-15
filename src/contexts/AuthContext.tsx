@@ -40,8 +40,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[AuthContext] useEffect dijalankan');
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('[AuthContext] getSession result:', session);
       if (session?.user) {
         fetchUserProfile(session.user);
       } else {
@@ -51,6 +53,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[AuthContext] onAuthStateChange:', event, session);
       if (session?.user) {
         await fetchUserProfile(session.user);
       } else {
@@ -63,20 +66,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
+    console.log('[AuthContext] fetchUserProfile dipanggil dengan:', supabaseUser);
     try {
+      console.log('[AuthContext] sebelum request ke Supabase');
       const { data: profile, error } = await supabase
         .from('profiles')
         .select(`
           id,
           name,
           email,
-          departments (
+          department_id (
             id,
             name
           )
         `)
         .eq('id', supabaseUser.id)
         .single();
+      console.log('[AuthContext] setelah request ke Supabase');
+      console.log('[AuthContext] fetchUserProfile result:', { profile, error });
 
       if (error) {
         console.error('Error fetching profile:', error);
@@ -89,7 +96,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           id: profile.id,
           name: profile.name,
           email: profile.email,
-          department: profile.departments?.name || 'Engineering',
+          department: profile.department_id?.name || 'Engineering',
           position: 'Employee', // This could be added to profiles table later
           avatar: profile.name.split(' ').map(n => n[0]).join('')
         });
