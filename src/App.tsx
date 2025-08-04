@@ -9,6 +9,8 @@ import { DepartmentProvider } from "./components/OKR/DepartmentContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout/Layout";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import OKRManagement from "./pages/OKRManagement";
 import MyOKR from "./pages/MyOKR";
@@ -34,6 +36,9 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/okr/reset-password" element={<ResetPassword />} />
               <Route path="/*" element={
                 <ProtectedRoute>
                   <Layout>

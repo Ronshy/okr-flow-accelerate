@@ -19,6 +19,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   getUserOKRs: () => any[];
+  resetPassword: (email: string) => Promise<{ success: boolean; message: string }>;
+  updatePassword: (password: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -139,6 +141,60 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return [];
   };
 
+  const resetPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/okr/reset-password`,
+      });
+
+      if (error) {
+        return {
+          success: false,
+          message: error.message === 'User not found' 
+            ? 'Email tidak terdaftar dalam sistem.' 
+            : 'Terjadi kesalahan saat mengirim email reset password.'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Email reset password telah dikirim. Silakan cek inbox Anda.'
+      };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return {
+        success: false,
+        message: 'Terjadi kesalahan saat mengirim email reset password.'
+      };
+    }
+  };
+
+  const updatePassword = async (password: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (error) {
+        return {
+          success: false,
+          message: 'Terjadi kesalahan saat mengubah password.'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Password berhasil diubah.'
+      };
+    } catch (error) {
+      console.error('Update password error:', error);
+      return {
+        success: false,
+        message: 'Terjadi kesalahan saat mengubah password.'
+      };
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -146,7 +202,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       logout,
       isAuthenticated: !!user,
       isLoading,
-      getUserOKRs
+      getUserOKRs,
+      resetPassword,
+      updatePassword
     }}>
       {children}
     </AuthContext.Provider>

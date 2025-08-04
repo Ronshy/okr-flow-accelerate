@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Building2, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -243,6 +243,16 @@ const Login = () => {
                 <p className="text-xs text-gray-500 mt-1">
                   Password minimal 6 karakter
                 </p>
+              )}
+              {!isSignUp && (
+                <div className="text-right mt-2">
+                  <Link 
+                    to="/forgot-password" 
+                    className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    Lupa Password?
+                  </Link>
+                </div>
               )}
             </div>
 

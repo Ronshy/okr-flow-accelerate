@@ -13,13 +13,15 @@ const MyOKR = () => {
   const [showAlignment, setShowAlignment] = useState(false);
   const [myOKRs, setMyOKRs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   const { user } = useAuth();
   const { currentDepartment, getTeamOKRsByDepartment, departments } = useDepartment();
   const currentDeptName = departments.find(d => d.id === currentDepartment)?.name || 'Engineering';
   const teamOKRs = getTeamOKRsByDepartment(currentDepartment);
 
   useEffect(() => {
+    console.log('user:', user);
     if (user) {
       fetchMyOKRs();
     }
@@ -27,9 +29,9 @@ const MyOKR = () => {
 
   const fetchMyOKRs = async () => {
     if (!user) return;
-
     try {
       setIsLoading(true);
+      setFetchError(null);
       const { data: okrs, error } = await supabase
         .from('okrs')
         .select(`
@@ -38,17 +40,17 @@ const MyOKR = () => {
         `)
         .eq('owner_id', user.id)
         .eq('level', 'individual');
-
+      console.log('okrs:', okrs, 'error:', error);
       if (error) {
+        setFetchError('Gagal mengambil data OKR: ' + error.message);
         console.error('Error fetching OKRs:', error);
         return;
       }
-
       if (okrs) {
         const formattedOKRs = okrs.map(okr => ({
           id: okr.id,
           objective: okr.objective,
-          keyResults: okr.key_results.map((kr: any) => ({
+          keyResults: (okr.key_results || []).map((kr: any) => ({
             id: kr.id,
             title: kr.title,
             progress: kr.progress,
@@ -65,6 +67,7 @@ const MyOKR = () => {
         setMyOKRs(formattedOKRs);
       }
     } catch (error) {
+      setFetchError('Terjadi error saat mengambil data OKR.');
       console.error('Error in fetchMyOKRs:', error);
     } finally {
       setIsLoading(false);
@@ -81,12 +84,20 @@ const MyOKR = () => {
     // Here you would implement the alignment logic
   };
 
+  if (!user) {
+    return <div className="p-6 text-center text-gray-500">Sedang memuat user/session...</div>;
+  }
+
   if (isLoading) {
     return (
       <div className="p-6 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
+  }
+
+  if (fetchError) {
+    return <div className="p-6 text-center text-red-500">{fetchError}</div>;
   }
 
   return (
