@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Target, Users, Calendar, TrendingUp } from 'lucide-react';
+import BasicProgressBar from './BasicProgressBar';
 
 interface KeyResult {
   id: string;
@@ -20,9 +21,10 @@ interface OKRCardProps {
   deadline: string;
   progress: number;
   type: 'aspirational' | 'committed';
+  onKeyResultUpdate?: (keyResultId: string, newProgress: number, newStatus: string, newCurrent: string) => void;
 }
 
-const OKRCard = ({ objective, keyResults, owner, team, deadline, progress, type }: OKRCardProps) => {
+const OKRCard = ({ objective, keyResults, owner, team, deadline, progress, type, onKeyResultUpdate }: OKRCardProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'on-track': return 'bg-green-100 text-green-800';
@@ -36,6 +38,12 @@ const OKRCard = ({ objective, keyResults, owner, team, deadline, progress, type 
     if (progress >= 70) return 'bg-green-500';
     if (progress >= 40) return 'bg-yellow-500';
     return 'bg-red-500';
+  };
+
+  const handleKeyResultUpdate = (keyResultId: string, newProgress: number, newStatus: string, newCurrent: string) => {
+    if (onKeyResultUpdate) {
+      onKeyResultUpdate(keyResultId, newProgress, newStatus, newCurrent);
+    }
   };
 
   return (
@@ -79,24 +87,18 @@ const OKRCard = ({ objective, keyResults, owner, team, deadline, progress, type 
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-gray-700">Key Results</h4>
         {keyResults.map((kr) => (
-          <div key={kr.id} className="border-l-4 border-blue-500 pl-4 py-2">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-sm font-medium text-gray-900">{kr.title}</p>
-              <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(kr.status)}`}>
-                {kr.status.replace('-', ' ')}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm text-gray-600">
-              <span>{kr.current} / {kr.target}</span>
-              <span className="font-medium">{kr.progress}%</span>
-            </div>
-            <div className="w-full h-1.5 bg-gray-200 rounded-full mt-1">
-              <div 
-                className={`h-full rounded-full ${getProgressColor(kr.progress)}`}
-                style={{ width: `${kr.progress}%` }}
-              ></div>
-            </div>
-          </div>
+          <BasicProgressBar
+            key={kr.id}
+            keyResultId={kr.id}
+            title={kr.title}
+            current={kr.current}
+            target={kr.target}
+            progress={kr.progress}
+            status={kr.status}
+            onProgressUpdate={(keyResultId, newProgress, newStatus, newCurrent) => 
+              handleKeyResultUpdate(keyResultId, newProgress, newStatus, newCurrent)
+            }
+          />
         ))}
       </div>
     </div>
