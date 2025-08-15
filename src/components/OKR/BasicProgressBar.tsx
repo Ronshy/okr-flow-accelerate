@@ -37,13 +37,11 @@ const BasicProgressBar = ({
       const currentNum = parseFloat(currentValue.replace('%', ''));
       return Math.min(Math.round((currentNum / targetNum) * 100), 100);
     }
-    
     if (!isNaN(Number(currentValue)) && !isNaN(Number(targetValue))) {
       const targetNum = parseFloat(targetValue);
       const currentNum = parseFloat(currentValue);
       return Math.min(Math.round((currentNum / targetNum) * 100), 100);
     }
-    
     return Math.min(Math.round((currentValue.length / targetValue.length) * 100), 100);
   };
 
@@ -73,10 +71,8 @@ const BasicProgressBar = ({
 
   const handleSave = () => {
     if (!editCurrent.trim()) return;
-
     const newProgress = calculateProgress(editCurrent, target);
     const newStatus = calculateStatus(newProgress);
-
     onProgressUpdate(keyResultId, newProgress, newStatus, editCurrent);
     setIsEditing(false);
   };
@@ -96,18 +92,15 @@ const BasicProgressBar = ({
     <div className="border-l-4 border-blue-500 pl-4 py-3 bg-gray-50 rounded-r-lg">
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm font-medium text-gray-900">{title}</p>
-        
         <div className={`flex items-center space-x-2 px-3 py-1 rounded-full border text-xs font-medium ${getStatusColor(status)}`}>
           {getStatusIcon(status)}
           <span>{status.replace('-', ' ')}</span>
         </div>
       </div>
-
       <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
         <span className="font-medium">Progress: {progress}%</span>
         <span className="text-gray-500">{current} / {target}</span>
       </div>
-
       <div className="space-y-3">
         <div 
           className="relative cursor-pointer group"
@@ -120,22 +113,18 @@ const BasicProgressBar = ({
               style={{ width: `${progress}%` }}
             ></div>
           </div>
-          
           <div 
             className="absolute top-0 h-3 w-1 bg-white shadow-sm rounded-full transition-all duration-300 ease-in-out"
             style={{ left: `calc(${progress}% - 2px)` }}
           ></div>
-          
           <div className="absolute inset-0 bg-blue-100 opacity-0 group-hover:opacity-20 transition-opacity duration-200 rounded-full"></div>
         </div>
-
         {isEditing && (
           <div className="bg-white p-3 rounded-lg border border-blue-200 shadow-sm">
             <div className="flex items-center space-x-2 mb-3">
               <Edit3 className="w-4 h-4 text-blue-600" />
               <span className="text-sm font-medium text-gray-700">Update Progress</span>
             </div>
-            
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -148,12 +137,10 @@ const BasicProgressBar = ({
                   className="text-sm"
                 />
               </div>
-              
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <span>Target: {target}</span>
                 <span>New Progress: {calculateProgress(editCurrent, target)}%</span>
               </div>
-              
               <div className="flex items-center space-x-2">
                 <Button
                   size="sm"
@@ -163,7 +150,6 @@ const BasicProgressBar = ({
                   <Check className="w-4 h-4" />
                   <span className="ml-1">Save</span>
                 </Button>
-                
                 <Button
                   size="sm"
                   variant="outline"
@@ -176,11 +162,10 @@ const BasicProgressBar = ({
             </div>
           </div>
         )}
-
         {isEditing && (
           <div className="text-xs text-gray-500 text-center">
             <span className="font-medium">Preview:</span> New status will be{' '}
-            <span className={`font-medium ${getStatusColor(calculateStatus(calculateProgress(editCurrent, target))}`}>
+            <span className={`font-medium ${getStatusColor(calculateStatus(calculateProgress(editCurrent, target)))}`}>
               {calculateStatus(calculateProgress(editCurrent, target)).replace('-', ' ')}
             </span>
           </div>
