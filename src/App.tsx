@@ -23,6 +23,7 @@ import CalendarPage from "./pages/Calendar";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import { OKRProvider } from "./contexts/OKRContext";
 
 const queryClient = new QueryClient();
 
@@ -31,36 +32,38 @@ const App = () => (
     <TooltipProvider>
       <AuthProvider>
         <DepartmentProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter basename={import.meta.env.BASE_URL || "/okr/"}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/okr/reset-password" element={<ResetPassword />} />
-              <Route path="/*" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/okr" element={<OKRManagement />} />
-                      <Route path="/okr/my" element={<MyOKR />} />
-                      <Route path="/okr/team" element={<TeamOKR />} />
-                      <Route path="/okr/company" element={<CompanyOKR />} />
-                      <Route path="/tasks" element={<Tasks />} />
-                      <Route path="/performance/*" element={<Performance />} />
-                      <Route path="/engagement" element={<Engagement />} />
-                      <Route path="/calendar" element={<CalendarPage />} />
-                      <Route path="/profile" element={<Profile />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </Layout>
-                </ProtectedRoute>
-              } />
-            </Routes>
-          </BrowserRouter>
+          <OKRProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter basename={import.meta.env.BASE_URL || "/okr/"}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/okr/reset-password" element={<ResetPassword />} />
+                <Route path="/*" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/okr" element={<OKRManagement />} />
+                        <Route path="/okr/my" element={<MyOKR />} />
+                        <Route path="/okr/team" element={<TeamOKR />} />
+                        <Route path="/okr/company" element={<CompanyOKR />} />
+                        <Route path="/tasks" element={<Tasks />} />
+                        <Route path="/performance/*" element={<Performance />} />
+                        <Route path="/engagement" element={<Engagement />} />
+                        <Route path="/calendar" element={<CalendarPage />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </BrowserRouter>
+          </OKRProvider>
         </DepartmentProvider>
       </AuthProvider>
     </TooltipProvider>

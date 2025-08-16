@@ -1,87 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Target, Plus, Filter, Search, Calendar, User, Users } from 'lucide-react';
 import OKRCard from '@/components/OKR/OKRCard';
 import CreateOKRModal from '@/components/OKR/CreateOKRModal';
 import OKRAlignment from '@/components/OKR/OKRAlignment';
 import { useDepartment } from '@/components/OKR/DepartmentContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useOKR } from '@/contexts/OKRContext';
 
 const MyOKR = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'on-track' | 'at-risk' | 'off-track'>('all');
   const [showAlignment, setShowAlignment] = useState(false);
-  const [myOKRs, setMyOKRs] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-
   const { user } = useAuth();
   const { currentDepartment, getTeamOKRsByDepartment, departments } = useDepartment();
   const currentDeptName = departments.find(d => d.id === currentDepartment)?.name || 'Engineering';
-  const teamOKRs = getTeamOKRsByDepartment(currentDepartment);
+  const { okrs, isLoading, error, updateKeyResult, refetchOKRs } = useOKR();
 
-  useEffect(() => {
-    console.log('user:', user);
-    if (user) {
-      fetchMyOKRs();
-    }
-  }, [user]);
-
-  const fetchMyOKRs = async () => {
-    if (!user) return;
-    try {
-      setIsLoading(true);
-      setFetchError(null);
-      const { data: okrs, error } = await supabase
-        .from('okrs')
-        .select(`
-          *,
-          key_results (*)
-        `)
-        .eq('owner_id', user.id)
-        .eq('level', 'individual');
-      console.log('okrs:', okrs, 'error:', error);
-      if (error) {
-        setFetchError('Gagal mengambil data OKR: ' + error.message);
-        console.error('Error fetching OKRs:', error);
-        return;
-      }
-      if (okrs) {
-        const formattedOKRs = okrs.map(okr => ({
-          id: okr.id,
-          objective: okr.objective,
-          keyResults: (okr.key_results || []).map((kr: any) => ({
-            id: kr.id,
-            title: kr.title,
-            progress: kr.progress,
-            target: kr.target,
-            current: kr.current,
-            status: kr.status
-          })),
-          owner: user.name,
-          team: currentDeptName,
-          deadline: okr.deadline,
-          progress: okr.progress,
-          type: okr.type
-        }));
-        setMyOKRs(formattedOKRs);
-      }
-    } catch (error) {
-      setFetchError('Terjadi error saat mengambil data OKR.');
-      console.error('Error in fetchMyOKRs:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Filter OKRs for current user and level individual
+  const myOKRs = okrs.filter(okr => okr.level === 'individual' && okr.owner === user?.name);
+  const teamOKRs = getTeamOKRsByDepartment(currentDepartment); // (optional: refactor to use context if needed)
 
   const filteredOKRs = myOKRs.filter(okr => {
     if (filterStatus === 'all') return true;
     return okr.keyResults.some((kr: any) => kr.status === filterStatus);
   });
 
-  const handleAlignment = (personalOKRId: string, teamOKRId: string) => {
-    console.log('Aligning personal OKR', personalOKRId, 'with team OKR', teamOKRId);
-    // Here you would implement the alignment logic
+  const handleKeyResultUpdate = async (okrId, keyResultId, newProgress, newStatus, newCurrent) => {
+    await updateKeyResult(okrId, keyResultId, newProgress, newStatus, newCurrent);
   };
 
   if (!user) {
@@ -96,8 +41,8 @@ const MyOKR = () => {
     );
   }
 
-  if (fetchError) {
-    return <div className="p-6 text-center text-red-500">{fetchError}</div>;
+  if (error) {
+    return <div className="p-6 text-center text-red-500">{error}</div>;
   }
 
   return (
@@ -136,6 +81,7 @@ const MyOKR = () => {
               type="text"
               placeholder="Search my OKRs..."
               className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              // TODO: implement search
             />
           </div>
           
@@ -166,13 +112,19 @@ const MyOKR = () => {
         <OKRAlignment 
           personalOKR={myOKRs[0]} 
           teamOKRs={teamOKRs}
-          onAlign={handleAlignment}
+          onAlign={() => {}}
         />
       )}
 
       <div className="grid grid-cols-1 gap-6">
         {filteredOKRs.map((okr) => (
-          <OKRCard key={okr.id} {...okr} />
+          <OKRCard 
+            key={okr.id} 
+            {...okr} 
+            onKeyResultUpdate={(keyResultId, newProgress, newStatus, newCurrent) =>
+              handleKeyResultUpdate(okr.id, keyResultId, newProgress, newStatus, newCurrent)
+            }
+          />
         ))}
       </div>
 
@@ -194,7 +146,7 @@ const MyOKR = () => {
         isOpen={isCreateModalOpen} 
         onClose={() => {
           setIsCreateModalOpen(false);
-          fetchMyOKRs(); // Refresh OKRs after creating new one
+          refetchOKRs(); // Refresh OKRs after creating new one
         }}
         level="individual"
       />

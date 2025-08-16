@@ -4,13 +4,32 @@ import { Target, Plus, Filter, Search, Users } from 'lucide-react';
 import OKRCard from '@/components/OKR/OKRCard';
 import CreateOKRModal from '@/components/OKR/CreateOKRModal';
 import { useDepartment } from '@/components/OKR/DepartmentContext';
+import { useOKR } from '@/contexts/OKRContext';
 
 const TeamOKR = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  
-  const { currentDepartment, setCurrentDepartment, departments, getTeamOKRsByDepartment } = useDepartment();
-  const teamOKRs = getTeamOKRsByDepartment(currentDepartment);
+  const { currentDepartment, setCurrentDepartment, departments } = useDepartment();
+  const { okrs, isLoading, error, updateKeyResult, refetchOKRs } = useOKR();
   const currentDept = departments.find(d => d.id === currentDepartment);
+
+  // Filter OKRs for current department and level team
+  const teamOKRs = okrs.filter(okr => okr.level === 'team' && okr.team === currentDept?.name);
+
+  const handleKeyResultUpdate = async (okrId, keyResultId, newProgress, newStatus, newCurrent) => {
+    await updateKeyResult(okrId, keyResultId, newProgress, newStatus, newCurrent);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="p-6 text-center text-red-500">{error}</div>;
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -36,6 +55,7 @@ const TeamOKR = () => {
               type="text"
               placeholder="Search team OKRs..."
               className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              // TODO: implement search
             />
           </div>
           
@@ -88,7 +108,13 @@ const TeamOKR = () => {
 
       <div className="grid grid-cols-1 gap-6">
         {teamOKRs.map((okr) => (
-          <OKRCard key={okr.id} {...okr} />
+          <OKRCard 
+            key={okr.id} 
+            {...okr} 
+            onKeyResultUpdate={(keyResultId, newProgress, newStatus, newCurrent) =>
+              handleKeyResultUpdate(okr.id, keyResultId, newProgress, newStatus, newCurrent)
+            }
+          />
         ))}
       </div>
 
@@ -108,7 +134,10 @@ const TeamOKR = () => {
 
       <CreateOKRModal 
         isOpen={isCreateModalOpen} 
-        onClose={() => setIsCreateModalOpen(false)} 
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          refetchOKRs();
+        }}
         level="team"
       />
     </div>

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Target, Users, CheckSquare, TrendingUp, Star, Calendar, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import MetricCard from '@/components/Dashboard/MetricCard';
@@ -8,18 +8,58 @@ import OKRPieChart from '@/components/Dashboard/OKRPieChart';
 import OKRComparisonChart from '@/components/Dashboard/OKRComparisonChart';
 import OKRCard from '@/components/OKR/OKRCard';
 import SampleDataManager from '@/components/Dashboard/SampleDataManager';
-import { useDashboardData } from '@/hooks/useDashboardData';
+import { useOKR } from '@/contexts/OKRContext';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { metrics, recentOKRs, upcomingDeadlines, isLoading, error, refetch } = useDashboardData();
+  const { okrs, isLoading, error, refetchOKRs } = useOKR();
+
+  // Calculate metrics from OKR context
+  const metrics = useMemo(() => {
+    const activeOKRs = okrs.filter(okr => new Date(okr.deadline) > new Date() && okr.progress < 100).length;
+    const teamPerformance = okrs.length > 0 ? Math.round(okrs.reduce((sum, okr) => sum + (okr.progress || 0), 0) / okrs.length) : 0;
+    const tasksCompleted = okrs.reduce((total, okr) => total + okr.keyResults.filter(kr => kr.progress === 100).length, 0);
+    const engagementScore = Math.min(100, Math.round((activeOKRs / Math.max(okrs.length, 1)) * 100 + 20));
+    return { activeOKRs, teamPerformance, tasksCompleted, engagementScore };
+  }, [okrs]);
+
+  // Recent OKRs (last 5)
+  const recentOKRs = useMemo(() => {
+    return [...okrs]
+      .sort((a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime())
+      .slice(0, 5);
+  }, [okrs]);
+
+  // Upcoming deadlines (OKRs due within 30 days)
+  const upcomingDeadlines = useMemo(() => {
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    return okrs
+      .filter(okr => {
+        const deadline = new Date(okr.deadline);
+        return deadline > new Date() && deadline <= thirtyDaysFromNow;
+      })
+      .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
+      .slice(0, 5)
+      .map(okr => {
+        const daysUntilDeadline = Math.ceil((new Date(okr.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        let priority = 'low';
+        if (daysUntilDeadline <= 7) priority = 'high';
+        else if (daysUntilDeadline <= 14) priority = 'medium';
+        return {
+          task: okr.objective.length > 50 ? okr.objective.substring(0, 50) + '...' : okr.objective,
+          due: okr.deadline,
+          priority
+        };
+      });
+  }, [okrs]);
 
   const metricCards = [
     {
       title: 'Active OKRs',
       value: metrics.activeOKRs.toString(),
       change: `${metrics.activeOKRs > 0 ? '+' : ''}${metrics.activeOKRs} active objectives`,
-      changeType: metrics.activeOKRs > 0 ? 'positive' as const : 'neutral' as const,
+      changeType: (metrics.activeOKRs > 0 ? 'positive' : 'neutral') as 'positive' | 'neutral' | 'negative',
       icon: Target,
       color: 'bg-blue-500'
     },
@@ -27,7 +67,7 @@ const Dashboard = () => {
       title: 'Team Performance',
       value: `${metrics.teamPerformance}%`,
       change: `${metrics.teamPerformance > 80 ? '+' : ''}${metrics.teamPerformance}% average progress`,
-      changeType: metrics.teamPerformance > 80 ? 'positive' as const : metrics.teamPerformance > 60 ? 'neutral' as const : 'negative' as const,
+      changeType: (metrics.teamPerformance > 80 ? 'positive' : metrics.teamPerformance > 60 ? 'neutral' : 'negative') as 'positive' | 'neutral' | 'negative',
       icon: Users,
       color: 'bg-green-500'
     },
@@ -35,7 +75,7 @@ const Dashboard = () => {
       title: 'Tasks Completed',
       value: metrics.tasksCompleted.toString(),
       change: `${metrics.tasksCompleted} key results completed`,
-      changeType: 'positive' as const,
+      changeType: 'positive' as 'positive' | 'neutral' | 'negative',
       icon: CheckSquare,
       color: 'bg-purple-500'
     },
@@ -43,7 +83,7 @@ const Dashboard = () => {
       title: 'Engagement Score',
       value: `${metrics.engagementScore}%`,
       change: `${metrics.engagementScore > 80 ? '+' : ''}${metrics.engagementScore}% team engagement`,
-      changeType: metrics.engagementScore > 80 ? 'positive' as const : metrics.engagementScore > 60 ? 'neutral' as const : 'negative' as const,
+      changeType: (metrics.engagementScore > 80 ? 'positive' : metrics.engagementScore > 60 ? 'neutral' : 'negative') as 'positive' | 'neutral' | 'negative',
       icon: Star,
       color: 'bg-yellow-500'
     }
@@ -79,7 +119,7 @@ const Dashboard = () => {
           <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Dashboard</h3>
           <p className="text-red-600 mb-4">{error}</p>
           <button 
-            onClick={refetch}
+            onClick={refetchOKRs}
             className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
           >
             Try Again

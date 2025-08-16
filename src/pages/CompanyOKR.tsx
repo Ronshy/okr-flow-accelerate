@@ -1,129 +1,19 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Target, Plus, Filter, Search, Building } from 'lucide-react';
 import OKRCard from '@/components/OKR/OKRCard';
 import CreateOKRModal from '@/components/OKR/CreateOKRModal';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useOKR } from '@/contexts/OKRContext';
 
 const CompanyOKR = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [companyOKRs, setCompanyOKRs] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { okrs, isLoading, error, updateKeyResult, refetchOKRs } = useOKR();
 
-  useEffect(() => {
-    if (user) {
-      fetchCompanyOKRs();
-    }
-  }, [user]);
+  // Filter OKRs for company level
+  const companyOKRs = okrs.filter(okr => okr.level === 'company');
 
-  const fetchCompanyOKRs = async () => {
-    try {
-      setIsLoading(true);
-      const { data: okrs, error } = await supabase
-        .from('okrs')
-        .select(`
-          *,
-          key_results (*)
-        `)
-        .eq('level', 'company');
-
-      if (error) {
-        console.error('Error fetching company OKRs:', error);
-        return;
-      }
-
-      if (okrs) {
-        const formattedOKRs = okrs.map(okr => ({
-          id: okr.id,
-          objective: okr.objective,
-          keyResults: (okr.key_results || []).map((kr: any) => ({
-            id: kr.id,
-            title: kr.title,
-            progress: kr.progress,
-            target: kr.target,
-            current: kr.current,
-            status: kr.status
-          })),
-          owner: 'Leadership Team',
-          team: 'Company',
-          deadline: okr.deadline,
-          progress: okr.progress,
-          type: okr.type
-        }));
-        setCompanyOKRs(formattedOKRs);
-      }
-    } catch (error) {
-      console.error('Error in fetchCompanyOKRs:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleKeyResultUpdate = async (keyResultId: string, newProgress: number, newStatus: string, newCurrent: string) => {
-    try {
-      // Update the local state immediately for better UX
-      setCompanyOKRs(prevOKRs => 
-        prevOKRs.map(okr => ({
-          ...okr,
-          keyResults: okr.keyResults.map(kr => 
-            kr.id === keyResultId 
-              ? { ...kr, progress: newProgress, status: newStatus, current: newCurrent }
-              : kr
-          )
-        }))
-      );
-
-      // Recalculate overall OKR progress
-      setCompanyOKRs(prevOKRs => 
-        prevOKRs.map(okr => {
-          const updatedKeyResults = okr.keyResults.map(kr => 
-            kr.id === keyResultId 
-              ? { ...kr, progress: newProgress, status: newStatus, current: newCurrent }
-              : kr
-          );
-          
-          // Calculate new overall progress
-          const totalProgress = updatedKeyResults.reduce((sum, kr) => sum + kr.progress, 0);
-          const averageProgress = updatedKeyResults.length > 0 ? Math.round(totalProgress / updatedKeyResults.length) : 0;
-          
-          return {
-            ...okr,
-            keyResults: updatedKeyResults,
-            progress: averageProgress
-          };
-        })
-      );
-
-      // Update OKR progress in database
-      const okrId = companyOKRs.find(okr => 
-        okr.keyResults.some(kr => kr.id === keyResultId)
-      )?.id;
-
-      if (okrId) {
-        const { error: okrUpdateError } = await supabase
-          .from('okrs')
-          .update({
-            progress: Math.round(
-              companyOKRs
-                .find(okr => okr.id === okrId)
-                ?.keyResults.reduce((sum, kr) => sum + kr.progress, 0) / 
-                companyOKRs.find(okr => okr.id === okrId)?.keyResults.length || 1
-            ),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', okrId);
-
-        if (okrUpdateError) {
-          console.error('Error updating OKR progress:', okrUpdateError);
-        }
-      }
-    } catch (error) {
-      console.error('Error updating key result:', error);
-      // Revert local state on error
-      fetchCompanyOKRs();
-    }
+  const handleKeyResultUpdate = async (okrId, keyResultId, newProgress, newStatus, newCurrent) => {
+    await updateKeyResult(okrId, keyResultId, newProgress, newStatus, newCurrent);
   };
 
   if (isLoading) {
@@ -146,6 +36,10 @@ const CompanyOKR = () => {
         </div>
       </div>
     );
+  }
+
+  if (error) {
+    return <div className="p-6 text-center text-red-500">{error}</div>;
   }
 
   return (
@@ -172,15 +66,14 @@ const CompanyOKR = () => {
               type="text"
               placeholder="Search company OKRs..."
               className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              // TODO: implement search
             />
           </div>
-          
           <button className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
             <Filter className="w-4 h-4" />
             <span>Filters</span>
           </button>
         </div>
-
         <div className="flex items-center space-x-2 text-sm text-gray-600">
           <Building className="w-4 h-4" />
           <span>Company Level</span>
@@ -192,14 +85,33 @@ const CompanyOKR = () => {
           <OKRCard 
             key={okr.id} 
             {...okr} 
-            onKeyResultUpdate={handleKeyResultUpdate}
+            onKeyResultUpdate={(keyResultId, newProgress, newStatus, newCurrent) =>
+              handleKeyResultUpdate(okr.id, keyResultId, newProgress, newStatus, newCurrent)
+            }
           />
         ))}
       </div>
 
+      {companyOKRs.length === 0 && (
+        <div className="text-center py-12">
+          <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Company OKRs found</h3>
+          <p className="text-gray-600 mb-4">Create the first company OKR for your organization</p>
+          <button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Create Company OKR
+          </button>
+        </div>
+      )}
+
       <CreateOKRModal 
         isOpen={isCreateModalOpen} 
-        onClose={() => setIsCreateModalOpen(false)} 
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          refetchOKRs();
+        }}
         level="company"
       />
     </div>

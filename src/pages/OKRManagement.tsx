@@ -3,109 +3,34 @@ import React, { useState } from 'react';
 import { Target, Plus, Filter, Grid, List, Search } from 'lucide-react';
 import OKRCard from '@/components/OKR/OKRCard';
 import CreateOKRModal from '@/components/OKR/CreateOKRModal';
+import { useOKR } from '@/contexts/OKRContext';
 
 const OKRManagement = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterLevel, setFilterLevel] = useState<'all' | 'company' | 'team' | 'individual'>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { okrs, isLoading, error, updateKeyResult, refetchOKRs } = useOKR();
 
-  const okrData = [
-    {
-      id: '1',
-      objective: 'Accelerate product development velocity and quality',
-      keyResults: [
-        {
-          id: 'kr1',
-          title: 'Reduce average feature delivery time by 40%',
-          progress: 75,
-          target: '40%',
-          current: '30%',
-          status: 'on-track' as const
-        },
-        {
-          id: 'kr2',
-          title: 'Achieve 99.5% uptime across all services',
-          progress: 92,
-          target: '99.5%',
-          current: '99.2%',
-          status: 'on-track' as const
-        },
-        {
-          id: 'kr3',
-          title: 'Implement automated testing for 90% of codebase',
-          progress: 60,
-          target: '90%',
-          current: '54%',
-          status: 'at-risk' as const
-        }
-      ],
-      owner: 'Alex Rodriguez',
-      team: 'Engineering',
-      deadline: '2024-03-31',
-      progress: 76,
-      type: 'committed' as const
-    },
-    {
-      id: '2',
-      objective: 'Transform customer onboarding experience',
-      keyResults: [
-        {
-          id: 'kr4',
-          title: 'Reduce time-to-value from 7 days to 2 days',
-          progress: 85,
-          target: '2 days',
-          current: '3 days',
-          status: 'on-track' as const
-        },
-        {
-          id: 'kr5',
-          title: 'Achieve 95% completion rate for onboarding flow',
-          progress: 70,
-          target: '95%',
-          current: '88%',
-          status: 'at-risk' as const
-        }
-      ],
-      owner: 'Emma Watson',
-      team: 'Customer Success',
-      deadline: '2024-02-29',
-      progress: 78,
-      type: 'committed' as const
-    },
-    {
-      id: '3',
-      objective: 'Establish market leadership in AI-powered analytics',
-      keyResults: [
-        {
-          id: 'kr6',
-          title: 'Launch 5 new AI features',
-          progress: 40,
-          target: '5',
-          current: '2',
-          status: 'at-risk' as const
-        },
-        {
-          id: 'kr7',
-          title: 'Achieve recognition as top 3 AI vendor',
-          progress: 20,
-          target: 'Top 3',
-          current: 'Top 10',
-          status: 'off-track' as const
-        }
-      ],
-      owner: 'David Kim',
-      team: 'Product Strategy',
-      deadline: '2024-06-30',
-      progress: 30,
-      type: 'aspirational' as const
-    }
-  ];
-
-  const filteredOKRs = okrData.filter(okr => {
+  const filteredOKRs = okrs.filter(okr => {
     if (filterLevel === 'all') return true;
-    // This would be based on actual data structure in real app
-    return true;
+    return okr.level === filterLevel;
   });
+
+  const handleKeyResultUpdate = async (okrId, keyResultId, newProgress, newStatus, newCurrent) => {
+    await updateKeyResult(okrId, keyResultId, newProgress, newStatus, newCurrent);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="p-6 text-center text-red-500">{error}</div>;
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -131,6 +56,7 @@ const OKRManagement = () => {
               type="text"
               placeholder="Search OKRs..."
               className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              // TODO: implement search
             />
           </div>
           
@@ -169,7 +95,13 @@ const OKRManagement = () => {
 
       <div className="grid grid-cols-1 gap-6">
         {filteredOKRs.map((okr) => (
-          <OKRCard key={okr.id} {...okr} />
+          <OKRCard 
+            key={okr.id} 
+            {...okr} 
+            onKeyResultUpdate={(keyResultId, newProgress, newStatus, newCurrent) =>
+              handleKeyResultUpdate(okr.id, keyResultId, newProgress, newStatus, newCurrent)
+            }
+          />
         ))}
       </div>
 
@@ -189,8 +121,11 @@ const OKRManagement = () => {
 
       <CreateOKRModal 
         isOpen={isCreateModalOpen} 
-        onClose={() => setIsCreateModalOpen(false)} 
-        level="company"
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          refetchOKRs();
+        }}
+        level={filterLevel === 'all' ? 'company' : filterLevel}
       />
     </div>
   );
