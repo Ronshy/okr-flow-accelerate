@@ -181,7 +181,7 @@ const SimpleProgressBar = ({
         {isEditing && (
           <div className="text-xs text-gray-500 text-center">
             <span className="font-medium">Preview:</span> New status will be{' '}
-            <span className={`font-medium ${getStatusColor(calculateStatus(calculateProgress(editCurrent, target))}`}>
+            <span className={`font-medium ${getStatusColor(calculateStatus(calculateProgress(editCurrent, target)))}`}>
               {calculateStatus(calculateProgress(editCurrent, target)).replace('-', ' ')}
             </span>
           </div>
